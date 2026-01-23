@@ -398,7 +398,7 @@ async function sendMessage() {
     div.innerHTML = `
         <!-- HERE: Replaced star/diamond with aether logo or simple generic brain/star -->
         <div class="w-8 h-8 rounded-full bg-transparent border border-white/10 flex items-center justify-center shrink-0">
-             <img src="assets/logo.png" class="w-6 h-6 rounded-full opacity-80"> 
+             <i class="fa-solid fa-bolt text-xs text-blue-400 opacity-80"></i>
         </div>
         <div class="text-gray-100 leading-relaxed pt-1 w-full relative group">
             <div id="${contentId}" class="markdown-body min-h-[20px]"></div> 
