@@ -183,24 +183,24 @@ function initThreeJS() {
     const particleSystem = new THREE.Points(pGeo, pMat);
     scene.add(particleSystem);
 
-    // LIGHTS (Rainbow Setup)
-    const ambientLight = new THREE.AmbientLight(0x101010); // Darker ambient
+    // LIGHTS (Rainbow Setup - SAFETY BRIGHTNESS)
+    const ambientLight = new THREE.AmbientLight(0x404040); // Brighter ambient
     scene.add(ambientLight);
 
     // Primary Glow
-    const light1 = new THREE.PointLight(0x00FFFF, 2, 10); // Cyan
+    const light1 = new THREE.PointLight(0x00FFFF, 8, 20); // Cyan - Intensity 8
     light1.position.set(2, 2, 2);
     light1.userData = { offset: 0 };
     scene.add(light1);
 
     // Secondary Glow
-    const light2 = new THREE.PointLight(0xFF00FF, 2, 10); // Magenta
+    const light2 = new THREE.PointLight(0xFF00FF, 8, 20); // Magenta - Intensity 8
     light2.position.set(-2, -2, 2);
     light2.userData = { offset: 2 };
     scene.add(light2);
 
     // Tertiary Glow
-    const light3 = new THREE.PointLight(0x4285F4, 2, 10); // Blue
+    const light3 = new THREE.PointLight(0x4285F4, 8, 20); // Blue - Intensity 8
     light3.position.set(0, 2, -2);
     light3.userData = { offset: 4 };
     scene.add(light3);
@@ -300,10 +300,11 @@ function drawVisualizer() {
     sphere.rotation.z += 0.002;
 
     // BASE COLOR
-    // We make the base darker so the colored lights pop more
-    sphere.material.color.setHex(0x111111);
+    // BRIGHTNESS FIX: Lighter base + High Metalness
+    sphere.material.color.setHex(0xAAAAAA);
     sphere.material.roughness = 0.1;
-    sphere.material.metalness = 0.9;
+    sphere.material.metalness = 0.6;
+    sphere.material.emissive.setHex(0x111111);
 
     // VISUAL FEEDBACK FOR STATES (Override lights/color)
     if (isProcessing) {
