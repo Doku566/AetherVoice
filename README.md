@@ -6,9 +6,16 @@ La verdad: Se puede, pero pide **mucha máquina**. Si no tienes GPU dedicada (NV
 
 Básicamente es un chat local que corre 100% en tu compu, así que es privado.
 
+![Interfaz Principal](screenshots/interface.png)
+*Interfaz limpia y moderna.*
+
 ### Lo que funciona hasta ahora:
 - **Audio**: Puedes hablarle y te responde con voz.
 - **Vision**: Si compartes pantalla, "ve" lo que haces (útil para debugging).
+- **Nebulosa Arcoiris 🌈**: Un visualizador 3D que reacciona a tu voz y cambia de colores.
+
+![Modo Live](screenshots/live_mode.png)
+*Modo "Live" con la esfera reactiva.*
 - **Videos**: Si pides un tutorial (tipo "cómo cocinar"), busca en YouTube y te pega el video ahí mismo en el chat.
 - **Búsqueda**: Si no sabe algo, usa un script de Python (`server.py`) para buscar en Google.
 
