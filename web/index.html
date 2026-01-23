@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AetherVoice | Generative AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Markdown & Highlight -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <!-- Three.js (3D Engine) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['"Inter"', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        bg: '#131314', // Gemini Dark Background
+                        sidebar: '#1E1F20',
+                        surface: '#2D2E30',
+                        primary: '#A8C7FA', // Google Blue-ish
+                        accent: '#D3E3FD',
+                        userBubble: '#3F4042',
+                        aiBubble: 'transparent',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #131314;
+            color: #E3E3E3;
+        }
+
+        .scroll-hidden::-webkit-scrollbar {
+            display: none;
+        }
+
+        .typing-cursor::after {
+            content: '▋';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin 3s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Gradient Text for Logo */
+        .logo-gradient {
+            background: linear-gradient(90deg, #4285F4, #9B72CB, #D96570);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tool-icon {
+            @apply p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer text-gray-400;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar (Gemini Style) -->
+    <aside class="w-72 bg-sidebar flex-col hidden md:flex border-r border-white/5">
+        <div class="p-4 flex items-center gap-3">
+            <i class="fa-solid fa-bars text-xl text-gray-400 cursor-pointer"></i>
+            <span class="font-semibold text-lg tracking-tight logo-gradient">AetherVoice</span>
+        </div>
+
+        <div class="mx-4 mt-4 flex gap-2">
+            <button
+                class="flex items-center gap-2 bg-surface px-4 py-3 rounded-full text-sm font-medium hover:bg-white/5 transition-all text-gray-200"
+                onclick="window.location.reload()">
+                <i class="fa-solid fa-plus"></i> New chat
+            </button>
+            <button onclick="startLiveMode()"
+                class="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-3 rounded-full text-sm font-medium hover:opacity-90 transition-all text-white shadow-lg animate-pulse">
+                <i class="fa-solid fa-wave-square"></i> Live
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto mt-6 px-4">
+            <div id="recent-chats" class="space-y-1">
+                <!-- Javascript will populate this -->
+                <div class="px-2 text-xs text-gray-600">Loading history...</div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-white/5">
+            <a href="business.html" target="_blank"
+                class="flex items-center gap-2 text-sm text-yellow-400 hover:text-yellow-300 cursor-pointer transition-colors mb-4">
+                <i class="fa-solid fa-coins"></i> Pricing & API
+            </a>
+            <div
+                class="flex items-center gap-2 text-sm text-gray-400 hover:text-white cursor-pointer transition-colors">
+                <i class="fa-solid fa-gear"></i> Settings
+            </div>
+            <div class="mt-4 text-xs text-gray-600">
+                Waitlist Location: Texas, US
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex flex-col items-center relative">
+
+        <!-- Mobile Header -->
+        <div class="md:hidden w-full p-4 flex justify-between items-center text-gray-200">
+            <span class="font-semibold logo-gradient">AetherVoice</span>
+            <i class="fa-solid fa-bars text-xl"></i>
+        </div>
+
+        <!-- Chat Log / Terminal -->
+        <!-- Loading Model Indicator -->
+        <div id="model-loader" class="hidden mt-4 p-4 bg-surface border border-primary/30 rounded-xl">
+            <div class="flex justify-between text-xs text-primary mb-2">
+                <span>Initializing Neural Engine (Llama-3-8B)...</span>
+                <span id="load-percent">0%</span>
+            </div>
+            <div class="w-full bg-black rounded-full h-1.5">
+                <div id="load-bar" class="bg-primary h-1.5 rounded-full" style="width: 0%"></div>
+            </div>
+            <p id="load-status" class="text-[10px] text-gray-500 mt-2 font-mono">allocating_gpu_memory...</p>
+        </div>
+
+        <div id="chat-container" class="flex-1 w-full max-w-3xl overflow-y-auto p-4 space-y-6 scroll-hidden pb-40">
+            <!-- Welcome State -->
+            <div id="welcome-message" class="mt-20">
+                <h1 class="text-5xl font-medium mb-2"><span class="logo-gradient">Hello, Domingo</span></h1>
+                <h2 class="text-5xl font-medium text-gray-600 mb-12">How can I help today?</h2>
+
+                <!-- Suggestion Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-surface p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
+                        <p class="text-sm text-gray-300">Explain Quantum Computing</p>
+                        <div class="mt-8 flex justify-end"><i
+                                class="fa-solid fa-compass text-gray-500 bg-black/40 p-1 rounded-full"></i></div>
+                    </div>
+                    <div class="bg-surface p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
+                        <p class="text-sm text-gray-300">Write a Python script</p>
+                        <div class="mt-8 flex justify-end"><i
+                                class="fa-solid fa-code text-gray-500 bg-black/40 p-1 rounded-full"></i></div>
+                    </div>
+                    <div class="bg-surface p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
+                        <p class="text-sm text-gray-300">Analyze AWS Architecture</p>
+                        <div class="mt-8 flex justify-end"><i
+                                class="fa-solid fa-lightbulb text-gray-500 bg-black/40 p-1 rounded-full"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Messages will go here -->
+        </div>
+
+        <!-- Input Area (Bottom) -->
+        <div class="absolute bottom-0 w-full bg-bg pt-4 pb-6 px-4">
+            <div
+                class="max-w-3xl mx-auto relative bg-surface rounded-3xl p-2 flex flex-col border border-white/10 focus-within:bg-surface/80 transition-colors">
+
+                <!-- Input Field -->
+                <div class="flex items-end gap-2 px-2 pb-2">
+                    <div class="relative group">
+                        <i
+                            class="fa-solid fa-circle-plus text-gray-400 text-xl cursor-pointer hover:text-white transition-colors mb-2"></i>
+                        <!-- Tool Menu (Hover) -->
+                        <div
+                            class="absolute bottom-10 left-0 bg-surface border border-white/10 rounded-xl p-2 hidden group-hover:flex flex-col gap-2 w-40 shadow-xl z-50">
+                            <button onclick="triggerScreenShare()"
+                                class="flex items-center gap-3 p-2 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors text-left">
+                                <i class="fa-solid fa-desktop text-primary"></i> Share Screen
+                            </button>
+                            <button onclick="document.getElementById('file-upload').click()"
+                                class="flex items-center gap-3 p-2 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors text-left">
+                                <i class="fa-regular fa-image text-green-400"></i> Upload Image
+                            </button>
+                            <button
+                                class="flex items-center gap-3 p-2 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors text-left">
+                                <i class="fa-solid fa-code text-yellow-400"></i> Code Interpreter
+                            </button>
+                        </div>
+                    </div>
+
+                    <input type="file" id="file-upload" class="hidden" accept="image/*"
+                        onchange="handleFileUpload(this)">
+
+                    <div class="flex-1 flex flex-col gap-2">
+                        <!-- Preview Area for Attachments -->
+                        <div id="attachment-preview" class="hidden flex gap-2 overflow-x-auto pb-1"></div>
+
+                        <textarea id="prompt-input" rows="1" placeholder="Enter a prompt here"
+                            class="w-full bg-transparent text-gray-100 placeholder-gray-500 text-base p-1 outline-none resize-none overflow-hidden"
+                            oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                    </div>
+
+                    <!-- Mic Button -->
+                    <button id="mic-btn" onclick="toggleMic()"
+                        class="mb-1 p-2 rounded-full hover:bg-white/10 transition-colors">
+                        <i id="mic-icon" class="fa-solid fa-microphone text-gray-100"></i>
+                    </button>
+                    <!-- Submit -->
+                    <button id="send-btn" onclick="sendMessage()"
+                        class="mb-1 p-2 rounded-full hover:bg-white/10 transition-colors hidden">
+                        <i class="fa-solid fa-paper-plane text-primary"></i>
+                    </button>
+                </div>
+
+                <!-- Footer / Disclaimer -->
+            </div>
+            <p class="text-center text-xs text-gray-500 mt-3">AetherVoice may display inaccurate info, including about
+                people, so double-check its responses.</p>
+        </div>
+
+    </main>
+
+    <!-- LIVE OVERLAY -->
+    <div id="live-overlay" class="fixed inset-0 bg-[#000000] z-50 flex flex-col hidden transition-opacity duration-300">
+        <!-- Live Header -->
+        <div class="p-6 flex justify-between items-center z-10">
+            <div class="flex items-center gap-3">
+                <img src="assets/logo.png"
+                    class="w-8 h-8 rounded-full border border-white/10 shadow-[0_0_15px_rgba(66,133,244,0.4)]">
+                <span class="text-white/80 font-medium tracking-wide">AetherVoice Live</span>
+            </div>
+            <button onclick="endLiveMode()"
+                class="p-2 rounded-full bg-surface hover:bg-white/10 text-white transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Visualizer Area -->
+        <div class="flex-1 flex flex-col items-center justify-center relative w-full overflow-hidden">
+            <!-- Screen Share PIP -->
+            <video id="live-screen-feed"
+                class="hidden absolute top-4 right-4 w-48 h-32 bg-black/50 rounded-xl border border-white/10 object-cover shadow-2xl z-20"></video>
+
+            <!-- 3D SCENE CONTAINER -->
+            <div id="scene-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+            <!-- Central Status Text -->
+            <div class="absolute bottom-32 text-blue-200/80 text-sm font-medium tracking-widest uppercase animate-pulse"
+                id="live-status">Listening...</div>
+        </div>
+
+        <!-- Live Controls (Bottom Bar) -->
+        <div class="w-full flex justify-center items-center gap-8 pb-12 z-10">
+            <!-- Screen Share -->
+            <button onclick="toggleLiveScreen()"
+                class="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md flex items-center justify-center transition-all border border-white/5 group">
+                <i class="fa-solid fa-desktop text-xl group-hover:scale-110 transition-transform"></i>
+            </button>
+
+            <!-- End Call (Prominent) -->
+            <button onclick="endLiveMode()"
+                class="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-[0_0_30px_rgba(239,68,68,0.4)] flex items-center justify-center transition-all transform hover:scale-105">
+                <i class="fa-solid fa-phone-slash text-3xl"></i>
+            </button>
+
+            <!-- Mic Toggle -->
+            <button onclick="toggleMic()"
+                class="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md flex items-center justify-center transition-all border border-white/5 group">
+                <i class="fa-solid fa-microphone text-xl group-hover:scale-110 transition-transform"></i>
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
+```
