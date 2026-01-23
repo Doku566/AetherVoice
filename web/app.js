@@ -278,13 +278,20 @@ function drawVisualizer() {
     for (let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; }
     const energy = (sum / dataArray.length) / 255;
 
-    // ANIMATE LIGHTS (Orbit)
+    // ANIMATE LIGHTS (Orbit + Rainbow Color Cycle)
     if (window.sphereLights) {
         window.sphereLights.forEach((light, i) => {
             const offset = light.userData.offset;
+
+            // Orbit Motion
             light.position.x = Math.sin(time + offset) * 3;
             light.position.y = Math.cos(time * 0.8 + offset) * 3;
             light.position.z = Math.sin(time * 0.5 + offset) * 3;
+
+            // RAINBOW COLOR CYCLE (The key fix)
+            // Distribute hues across the 3 lights (0, 0.33, 0.66) and rotate them over time
+            const hue = (time * 0.1 + (i * 0.33)) % 1;
+            light.color.setHSL(hue, 1.0, 0.5); // Full saturation
         });
     }
 
@@ -292,10 +299,11 @@ function drawVisualizer() {
     sphere.rotation.y += 0.005;
     sphere.rotation.z += 0.002;
 
-    // BASE COLOR (White-ish to catch lights)
-    sphere.material.color.setHex(0xFFFFFF);
-    sphere.material.roughness = 0.2;
-    sphere.material.metalness = 0.8; // Reflective
+    // BASE COLOR
+    // We make the base darker so the colored lights pop more
+    sphere.material.color.setHex(0x111111);
+    sphere.material.roughness = 0.1;
+    sphere.material.metalness = 0.9;
 
     // VISUAL FEEDBACK FOR STATES (Override lights/color)
     if (isProcessing) {
