@@ -183,17 +183,30 @@ function initThreeJS() {
     const particleSystem = new THREE.Points(pGeo, pMat);
     scene.add(particleSystem);
 
-    // LIGHTS
-    const ambientLight = new THREE.AmbientLight(0x404040);
+    // LIGHTS (Rainbow Setup)
+    const ambientLight = new THREE.AmbientLight(0x101010); // Darker ambient
     scene.add(ambientLight);
 
-    const pointLight = new THREE.PointLight(0xffffff, 2, 80);
-    pointLight.position.set(5, 5, 5);
-    scene.add(pointLight);
+    // Primary Glow
+    const light1 = new THREE.PointLight(0x00FFFF, 2, 10); // Cyan
+    light1.position.set(2, 2, 2);
+    light1.userData = { offset: 0 };
+    scene.add(light1);
 
-    const rimLight = new THREE.PointLight(0x00ffff, 3, 20);
-    rimLight.position.set(-5, 5, 0);
-    scene.add(rimLight);
+    // Secondary Glow
+    const light2 = new THREE.PointLight(0xFF00FF, 2, 10); // Magenta
+    light2.position.set(-2, -2, 2);
+    light2.userData = { offset: 2 };
+    scene.add(light2);
+
+    // Tertiary Glow
+    const light3 = new THREE.PointLight(0x4285F4, 2, 10); // Blue
+    light3.position.set(0, 2, -2);
+    light3.userData = { offset: 4 };
+    scene.add(light3);
+
+    // Store lights for animation
+    window.sphereLights = [light1, light2, light3];
 
     // Resize Handler
     window.addEventListener('resize', () => {
@@ -265,22 +278,41 @@ function drawVisualizer() {
     for (let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; }
     const energy = (sum / dataArray.length) / 255;
 
+    // ANIMATE LIGHTS (Orbit)
+    if (window.sphereLights) {
+        window.sphereLights.forEach((light, i) => {
+            const offset = light.userData.offset;
+            light.position.x = Math.sin(time + offset) * 3;
+            light.position.y = Math.cos(time * 0.8 + offset) * 3;
+            light.position.z = Math.sin(time * 0.5 + offset) * 3;
+        });
+    }
+
     // ANIMATE SPHERE
     sphere.rotation.y += 0.005;
     sphere.rotation.z += 0.002;
 
-    // VISUAL FEEDBACK FOR STATES
+    // BASE COLOR (White-ish to catch lights)
+    sphere.material.color.setHex(0xFFFFFF);
+    sphere.material.roughness = 0.2;
+    sphere.material.metalness = 0.8; // Reflective
+
+    // VISUAL FEEDBACK FOR STATES (Override lights/color)
     if (isProcessing) {
-        // THINKING STATE: Gold, Fast Spin, No Pulse
+        // THINKING: Gold Override
         sphere.material.color.setHex(0xFFD700);
-        sphere.rotation.y += 0.05; // Fast spin
+        sphere.material.emissive.setHex(0xFFAA00);
+        sphere.material.emissiveIntensity = 0.5;
+        sphere.rotation.y += 0.05;
     } else if (isAI_Speaking) {
-        // SPEAKING STATE: Pulse Blue
+        // SPEAKING: Blue Pulse
         sphere.material.color.setHex(0x4285F4);
+        sphere.material.emissive.setHex(0x0011FF);
+        sphere.material.emissiveIntensity = 0.5 + energy; // Pulse with voice
     } else {
-        // LISTENING STATE: Rainbow Cycle
-        const hue = (time * 0.1) % 1;
-        sphere.material.color.setHSL(hue, 0.8, 0.6);
+        // LISTENING: Neutral (Let lights do the rainbow work)
+        sphere.material.emissive.setHex(0x000000);
+        sphere.material.emissiveIntensity = 0;
     }
 
     // MORPH GEOMETRY (Optimized Loop)
@@ -293,19 +325,17 @@ function drawVisualizer() {
         const oy = originalPositions[i + 1];
         const oz = originalPositions[i + 2];
 
-        // Simplified Noise (2 waves instead of 3)
-        // Cos/Sin lookups are expensive in loop, but unavoidable. 
-        // We removed one wave component.
+        // Simplified Noise
         const noise = 0.5 * Math.sin(0.5 * ox + noiseTime) + 0.3 * Math.cos(2.0 * oy + noiseTime);
 
-        // Audio Boost (Use simplified masking)
-        const audioIndex = (i % 32) * 4; // Use fewer bins
+        // Audio Boost
+        const audioIndex = (i % 32) * 4;
         const audioValue = dataArray[audioIndex] / 255;
 
         let energyFactor = energy;
         if (isProcessing) energyFactor = 0.1;
 
-        const displacement = 1 + (noise * 0.1) + (audioValue * energyFactor * 0.4);
+        const displacement = 1 + (noise * 0.1) + (audioValue * energyFactor * 0.5);
 
         positions[i] = ox * displacement;
         positions[i + 1] = oy * displacement;
