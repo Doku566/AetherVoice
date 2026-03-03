@@ -12,7 +12,7 @@ Básicamente es un chat local que corre 100% en tu compu, así que es privado.
 ### Lo que funciona hasta ahora:
 - **Audio**: Puedes hablarle y te responde con voz.
 - **Vision**: Si compartes pantalla, "ve" lo que haces (útil para debugging).
-- **Nebulosa Arcoiris 🌈**: Un visualizador 3D que reacciona a tu voz y cambia de colores.
+- **Nebulosa Arcoiris **: Un visualizador 3D que reacciona a tu voz y cambia de colores.
 
 ![Modo Live](screenshots/live_mode.png)
 *Modo "Live" con la esfera reactiva.*
