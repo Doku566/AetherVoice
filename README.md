@@ -2,7 +2,7 @@
 
 Estuve probando con `WebLLM` para ver si podía correr modelos tipo Llama-3 directo en el navegador sin pagar servidores. 
 
-La verdad: Se puede, pero pide **mucha máquina**. Si no tienes GPU dedicada (NVIDIA/AMD), va algo lento porque el navegador no está tan optimizado como una app nativa, pero funciona para experimentar.
+La verdad: Se puede, pero pide **muchos recursos**. Si no tienes GPU dedicada (NVIDIA/AMD), va algo lento porque el navegador no está tan optimizado como una app nativa, pero funciona para experimentar.
 
 Básicamente es un chat local que corre 100% en tu compu, así que es privado.
 
