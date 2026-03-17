@@ -183,7 +183,7 @@ async function simulateReasoningSteps(elementId) {
             loadStatus.innerText = statusText;
         });
         modelLoader.classList.add('hidden');
-        appendSystemBubble("Neural Engine Online (Llama-3-8B). Ready.");
+        appendSystemBubble("Neural Engine Online. Mode: WebGPU/CPU Hybrid Ready.");
     } catch (err) {
         loadStatus.innerText = "Error: " + err.message;
         loadStatus.classList.add('text-red-500');
@@ -554,12 +554,11 @@ function updateChatUI(element, markdown) {
 
     // ENHANCEMENT: Embed YouTube Videos
     // ENHANCEMENT: Embed YouTube Videos (Links and Images)
-    // Matches: <a ... href="..."> OR <img ... src="..."> pointing to YouTube
-    // Robust: Handles attributes in any order (e.g. alt before src)
-    const ytRegex = /(?:<a\s+(?:[^>]*?\s+)?href="([^"]+)"[^>]*>.*?<\/a>|<img\s+(?:[^>]*?\s+)?src="([^"]+)"[^>]*>)/gi;
+    // Robust: Handles markdown links, raw links, and images
+    const ytRegex = /(?:<a\s+(?:[^>]*?\s+)?href="([^"]+)"[^>]*>.*?<\/a>|<img\s+(?:[^>]*?\s+)?src="([^"]+)"[^>]*>|(?:\s|^)(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+))/gi;
 
-    html = html.replace(ytRegex, (match, linkUrl, imgUrl) => {
-        const url = linkUrl || imgUrl;
+    html = html.replace(ytRegex, (match, linkUrl, imgUrl, rawUrl) => {
+        const url = linkUrl || imgUrl || rawUrl;
         if (!url) return match;
 
         // Robust Matcher: allow youtube.0com, youtube.mi.com, youtube.co.uk, etc.

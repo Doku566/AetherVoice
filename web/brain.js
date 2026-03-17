@@ -12,26 +12,40 @@ class OfflineSystem {
         };
     }
 
-    // Process input in offline mode
+    // Process input in offline mode (Optimized for speed and rich results)
     async process(input, lang, onToken, searchContext) {
-        // Check for injected context first
-        if (searchContext && searchContext.length > 0) {
-            // Video extraction logic
-            const videoMatch = searchContext.match(/VIDEO AVAILABLE: (.*?) \| Link: (.*?) \|/);
-            if (videoMatch) {
-                const title = videoMatch[1];
-                const link = videoMatch[2];
-                const response = lang === 'es'
-                    ? `He encontrado este video para ti:\n\n${title}\n${link}`
-                    : `I found this video for you:\n\n${title}\n${link}`;
+        if (searchContext && searchContext.length > 10) {
+            let response = lang === 'es' 
+                ? "### Resultados Obtenidos\n\nHe analizado los datos externos y esto es lo que encontré:\n\n"
+                : "### Search Summary\n\nI have processed the external data and here is the report:\n\n";
 
-                // Stream response
-                for (const char of response) {
-                    await new Promise(r => setTimeout(r, 1)); // Near-instant
-                    if (onToken) onToken(char);
-                }
-                return response;
+            // Extract FIRST Image
+            const imgMatch = searchContext.match(/\* IMAGE: (.*?) \| Link: (.*?) \|/);
+            if (imgMatch) {
+                response += `![${imgMatch[1]}](${imgMatch[2]})\n\n`;
             }
+
+            // Extract Facts
+            const facts = [...searchContext.matchAll(/\* ACT: (.*?): (.*?) \((.*?)\)/g)];
+            facts.slice(0, 3).forEach(f => {
+                response += `* **${f[1]}**: ${f[2]} [Fuente](${f[3]})\n`;
+            });
+
+            // Extract Video
+            const vidMatch = searchContext.match(/\* VIDEO AVAILABLE: (.*?) \| Link: (.*?) \|/);
+            if (vidMatch) {
+                response += `\n### Video Recomendado\n🔗 [${vidMatch[1]}](${vidMatch[2]})\n`;
+            }
+
+            response += lang === 'es' 
+                ? "\n\n*Nota: Operando en CPU-Turbo para máxima velocidad.*" 
+                : "\n\n*Note: Operating in CPU-Turbo mode for maximum speed.*";
+
+            for (const char of response) {
+                await new Promise(r => setTimeout(r, 1));
+                if (onToken) onToken(char);
+            }
+            return response;
         }
 
         let text = this.library.default;
@@ -42,7 +56,7 @@ class OfflineSystem {
 
         const chars = text.split('');
         for (let i = 0; i < chars.length; i++) {
-            await new Promise(r => setTimeout(r, 2 + Math.random() * 3)); // Fastest typing
+            await new Promise(r => setTimeout(r, 2 + Math.random() * 3));
             if (onToken) onToken(chars[i]);
         }
         return text;
@@ -107,6 +121,11 @@ export class AetherBrain {
                         if (r.error) return;
 
                         if (r.type === 'text') searchContext += `* ACT: ${r.title}: ${r.body} (${r.href})\n`;
+                        
+                        // Handle Images
+                        if (r.type === 'image') {
+                            searchContext += `* IMAGE: ${r.title} | Link: ${r.href} | Thumb: ${r.thumbnail}\n`;
+                        }
 
                         // Handle Video Links
                         const isYouTube = r.href && (r.href.includes('youtube.com') || r.href.includes('youtu.be'));
@@ -133,8 +152,8 @@ export class AetherBrain {
 
         // System Prompt Configuration
         const systemPrompt = isSpanish
-            ? "Eres AetherVoice. Tienes acceso total a internet mediante los datos de contexto. Responde directamente con la información encontrada. Nunca digas 'soy una IA sin internet'. USA SOLO ENLACES REALES."
-            : "You are AetherVoice. You HAVE full internet access via the context provided. Answer requests directly using that information. NEVER say 'I cannot browse'. USE ONLY REAL LINKS.";
+            ? "Eres AetherVoice. Tienes acceso total a internet mediante los datos de contexto. Responde directamente con la información encontrada. USA SIEMPRE ENLACES REALES. Si hay imágenes disponibles, muéstralas usando ![título](url_de_la_imagen). Si hay videos, muéstralos con su enlace. NUNCA digas que no tienes internet."
+            : "You are AetherVoice. You HAVE full internet access via the context provided. Answer requests directly using that information. ALWAYS USE REAL LINKS. If images are available, show them using ![title](image_url). If videos are available, show them with their link. NEVER say 'I cannot browse'.";
 
         const newMessages = [
             { role: "system", content: systemPrompt },
