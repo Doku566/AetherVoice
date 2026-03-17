@@ -191,7 +191,9 @@ async function simulateReasoningSteps(elementId) {
 })();
 
 // --- 3D ENGINE VARIABLES ---
-let scene, camera, renderer, sphere, originalPositions;
+let lastFrameTime = 0;
+let scene, camera, renderer, sphere, originalPositions, particles;
+let isAudioInitialized = false;
 
 function initThreeJS() {
     const container = document.getElementById('scene-container');
@@ -241,8 +243,8 @@ function initThreeJS() {
     }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     const pMat = new THREE.PointsMaterial({ color: 0x88CCFF, size: 0.05, transparent: true, opacity: 0.7 });
-    const particleSystem = new THREE.Points(pGeo, pMat);
-    scene.add(particleSystem);
+    particles = new THREE.Points(pGeo, pMat);
+    scene.add(particles);
 
     // LIGHTS (Rainbow Setup - SAFETY BRIGHTNESS)
     const ambientLight = new THREE.AmbientLight(0x404040); // Brighter ambient
@@ -320,105 +322,75 @@ async function initAudioVisualizer() {
         analyser.fftSize = 512;
         const bufferLength = analyser.frequencyBinCount;
         dataArray = new Uint8Array(bufferLength);
-        drawVisualizer();
+        isAudioInitialized = true;
+        drawVisualizer(0); // Start the visualizer loop
     } catch (e) {
         console.warn("Visualizer failed init:", e);
     }
 }
 
-let time = 0;
-let lastFrameTime = 0;
-function drawVisualizer(now) {
-    if (!isLiveMode || !renderer || !sphere || document.visibilityState === 'hidden') return;
-    requestAnimationFrame(drawVisualizer);
-
-    // Throttle to ~60fps if needed, or skip if tab inactive
-    if (now - lastFrameTime < 16) return;
-    lastFrameTime = now;
-
-    analyser.getByteFrequencyData(dataArray);
-    time += 0.01;
-
-    // Calculate Audio Energy
-    let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; }
-    const energy = (sum / dataArray.length) / 255;
-
-    // ANIMATE LIGHTS (Orbit + Rainbow Color Cycle)
-    if (window.sphereLights) {
-        window.sphereLights.forEach((light, i) => {
-            const offset = light.userData.offset;
-
-            // Orbit Motion
-            light.position.x = Math.sin(time + offset) * 3;
-            light.position.y = Math.cos(time * 0.8 + offset) * 3;
-            light.position.z = Math.sin(time * 0.5 + offset) * 3;
-
-            // RAINBOW COLOR CYCLE (The key fix)
-            // Distribute hues across the 3 lights (0, 0.33, 0.66) and rotate them over time
-            const hue = (time * 0.1 + (i * 0.33)) % 1;
-            light.color.setHSL(hue, 1.0, 0.5); // Full saturation
-        });
+function drawVisualizer(time) {
+    if (!isLiveMode || !renderer || !sphere || document.visibilityState === 'hidden') {
+        requestAnimationFrame(drawVisualizer);
+        return;
     }
 
-    // ANIMATE SPHERE
-    sphere.rotation.y += 0.005;
-    sphere.rotation.z += 0.002;
+    // 60FPS Cap logic
+    if (time - lastFrameTime < 16) {
+        requestAnimationFrame(drawVisualizer);
+        return;
+    }
+    lastFrameTime = time;
 
-    // BASE COLOR
-    // BRIGHTNESS FIX: Lighter base + High Metalness
-    sphere.material.color.setHex(0xAAAAAA);
-    sphere.material.roughness = 0.1;
-    sphere.material.metalness = 0.6;
-    sphere.material.emissive.setHex(0x111111);
+    let audioFactor = 1.0;
+    if (isAudioInitialized && analyser) {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+        audioFactor = 1.0 + (sum / dataArray.length) / 100;
+    }
 
-    // VISUAL FEEDBACK FOR STATES (Override lights/color)
-    if (isProcessing) {
-        // THINKING: Gold Override
-        sphere.material.color.setHex(0xFFD700);
-        sphere.material.emissive.setHex(0xFFAA00);
-        sphere.material.emissiveIntensity = 0.5;
-        sphere.rotation.y += 0.05;
-    } else if (isAI_Speaking) {
-        // SPEAKING: Blue Pulse
-        sphere.material.color.setHex(0x4285F4);
-        sphere.material.emissive.setHex(0x0011FF);
-        sphere.material.emissiveIntensity = 0.5 + energy; // Pulse with voice
+    const positions = sphere.geometry.attributes.position;
+    for (let i = 0; i < positions.count; i++) {
+        const ix = i * 3;
+        const iy = i * 3 + 1;
+        const iz = i * 3 + 2;
+
+        const ox = originalPositions[ix];
+        const oy = originalPositions[iy];
+        const oz = originalPositions[iz];
+
+        // Senior Reactivity Logic: Wave + Audio Displacement
+        const freq = 0.001 * time;
+        const wave = Math.sin(ox * 2 + freq) * Math.cos(oy * 2 + freq) * 0.2;
+        const displacement = wave * audioFactor;
+
+        positions.array[ix] = ox + (ox / 2) * displacement;
+        positions.array[iy] = oy + (oy / 2) * displacement;
+        positions.array[iz] = oz + (oz / 2) * displacement;
+    }
+    positions.needsUpdate = true;
+
+    // Dynamic Rotation & Particle Spin
+    sphere.rotation.y += 0.003;
+    particles.rotation.y -= 0.001;
+    
+    // HSL Pulsing (Voice matching)
+    let hue;
+    if (isAI_Speaking) {
+        hue = (210 + Math.sin(time * 0.01) * 20) % 360; // Blue pulse
+        sphere.scale.setScalar(1.05 + Math.sin(time * 0.05) * 0.05 * audioFactor);
+    } else if (isProcessing) {
+        hue = (45 + Math.sin(time * 0.005) * 10) % 360; // Gold thinking
+        sphere.scale.setScalar(1.0);
     } else {
-        // LISTENING: Neutral (Let lights do the rainbow work)
-        sphere.material.emissive.setHex(0x000000);
-        sphere.material.emissiveIntensity = 0;
+        hue = (time * 0.01) % 360; // Rainbow idle
+        sphere.scale.setScalar(1.0);
     }
-
-    // MORPH GEOMETRY (Optimized Loop)
-    const positions = sphere.geometry.attributes.position.array;
-    // Pre-calc common noise factors
-    const noiseTime = time * 2;
-
-    for (let i = 0; i < positions.length; i += 3) {
-        const ox = originalPositions[i];
-        const oy = originalPositions[i + 1];
-        const oz = originalPositions[i + 2];
-
-        // Simplified Noise
-        const noise = 0.5 * Math.sin(0.5 * ox + noiseTime) + 0.3 * Math.cos(2.0 * oy + noiseTime);
-
-        // Audio Boost
-        const audioIndex = (i % 32) * 4;
-        const audioValue = dataArray[audioIndex] / 255;
-
-        let energyFactor = energy;
-        if (isProcessing) energyFactor = 0.1;
-
-        const displacement = 1 + (noise * 0.1) + (audioValue * energyFactor * 0.5);
-
-        positions[i] = ox * displacement;
-        positions[i + 1] = oy * displacement;
-        positions[i + 2] = oz * displacement;
-    }
-    sphere.geometry.attributes.position.needsUpdate = true;
+    sphere.material.color.setHSL(hue / 360, 0.7, 0.6);
 
     renderer.render(scene, camera);
+    requestAnimationFrame(drawVisualizer);
 }
 
 // --- VOICE & CHAT ---
@@ -458,10 +430,16 @@ if ('webkitSpeechRecognition' in window) {
     };
 }
 
-function toggleMic() {
+async function toggleMic() {
     if (!recognition) return;
     if (isListening) recognition.stop();
-    else { recognition.start(); isListening = true; }
+    else { 
+        // Assuming initAudio() is a function that sets up audioContext and analyser
+        // For now, we'll just start recognition. If initAudio() is needed, it should be defined.
+        // await initAudio(); // Start AudioContext on user interaction
+        recognition.start(); 
+        isListening = true; 
+    }
 }
 
 async function sendMessage() {

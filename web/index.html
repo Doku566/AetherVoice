@@ -82,14 +82,25 @@
             -webkit-text-fill-color: transparent;
         }
 
+        .glass-panel {
+            background: rgba(15, 15, 20, 0.7);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
         .tool-icon {
-            padding: 0.5rem;
-            border-radius: 9999px;
+            background: linear-gradient(135deg, var(--primary) 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 1.2rem;
+            font-weight: bold;
             transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
             transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
             transition-duration: 150ms;
             cursor: pointer;
-            color: #9CA3AF;
         }
         .tool-icon:hover {
             background-color: rgba(255, 255, 255, 0.1);
@@ -302,17 +313,17 @@
         </div>
     </div>
 
-    <!-- SETTINGS MODAL -->
-    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
-        <div class="bg-sidebar border border-white/10 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-medium">Settings</h3>
-                <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="text-gray-400 hover:text-white">
-                    <i class="fa-solid fa-xmark text-xl"></i>
+    <!-- Settings Modal (Senior Glassmorphism) -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-white">System Configuration</h2>
+                <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="p-2 hover:bg-white/5 rounded-full transition-colors">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
             
-            <div class="space-y-6">
+            <div class="space-y-6 p-6">
                 <div>
                     <label class="block text-xs font-medium text-gray-500 uppercase mb-2">Model Configuration</label>
                     <div class="p-3 bg-surface rounded-lg border border-white/5 flex items-center justify-between text-sm">

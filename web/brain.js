@@ -115,9 +115,23 @@ export class AetherBrain {
             try {
                 const results = await this.searchWeb(input);
                 if (results && results.length > 0) {
+                    // Senior Feature: Semantic Context Pruning (RAG-lite)
+                    // Prioritize results that contain keywords from the user input
+                    const keywords = input.toLowerCase().split(' ').filter(w => w.length > 4);
+                    results.sort((a, b) => {
+                        const aTitle = (a.title || "").toLowerCase();
+                        const aBody = (a.body || "").toLowerCase();
+                        const bTitle = (b.title || "").toLowerCase();
+                        const bBody = (b.body || "").toLowerCase();
+                        const aCount = keywords.filter(k => aTitle.includes(k) || aBody.includes(k)).length;
+                        const bCount = keywords.filter(k => bTitle.includes(k) || bBody.includes(k)).length;
+                        return bCount - aCount;
+                    });
+
                     searchContext = isSpanish ? "\n[SISTEMA: DATOS EXTERNOS]\n" : "\n[SYSTEM: EXTERNAL DATA]\n";
 
-                    results.forEach(r => {
+                    // Limit to top 4 high-quality facts
+                    results.slice(0, 4).forEach(r => {
                         if (r.error) return;
 
                         if (r.type === 'text') searchContext += `* ACT: ${r.title}: ${r.body} (${r.href})\n`;
@@ -157,41 +171,59 @@ export class AetherBrain {
 
         const newMessages = [
             { role: "system", content: systemPrompt },
-            ...this.context.messages.slice(-4), // Shorter context for speed
-            { role: "user", content: searchContext + input }
+            ...this.context.messages.slice(-4), // Senior Optimization: Sliding context window to save VRAM
         ];
+
+        newMessages.push({ role: "user", content: input + (searchContext ? `\n\nContext:\n${searchContext}` : "") });
 
         try {
             const chunks = await this.engine.chat.completions.create({
                 messages: newMessages,
-                temperature: 0.5, // Slightly more deterministic for speed
+                temperature: 0.5, 
                 top_p: 0.8,
-                max_gen_len: 384, // Limit generation length for faster turn-around
+                max_gen_len: 384, 
                 repetition_penalty: 1.1,
                 stream: true,
             });
 
             let fullText = "";
             for await (const chunk of chunks) {
-                const delta = chunk.choices[0]?.delta?.content || "";
-                if (delta) {
-                    fullText += delta;
-                    if (onToken) onToken(delta);
-                }
+                const content = chunk.choices[0]?.delta?.content || "";
+                fullText += content;
             }
+            
+            // Use kinetic streaming for the final output
+            await this.streamKinetic(fullText, onToken);
 
             this.context.messages.push({ role: "user", content: input });
             this.context.messages.push({ role: "assistant", content: fullText });
 
-            return {
-                text: fullText,
-                lang: this.context.lang
-            };
+            return { text: fullText, lang: this.context.lang };
         } catch (err) {
             console.error("Neural Inference Failed:", err);
-            this.useBackup = true;
-            const text = await this.offline.process(input, this.context.lang, onToken, searchContext);
-            return { text, lang: this.context.lang };
+            return { text: "Neural Device Lost or Error. Restarting...", lang: this.context.lang };
+        }
+    }
+
+    // --- SENIOR KINETIC TYPING ---
+    async streamKinetic(text, onToken) {
+        if (!text) return;
+        const parts = text.split(/([.!?\n])/).filter(Boolean);
+        
+        for (const part of parts) {
+            const chars = part.split('');
+            for (const char of chars) {
+                // Kinetic variance: Faster on middle of words, slower on starts
+                const baseDelay = 1; 
+                const variance = Math.random() * 3;
+                await new Promise(r => setTimeout(r, baseDelay + variance));
+                if (onToken) onToken(char);
+            }
+            
+            // Dramatic pauses on punctuation
+            if (".!?\n".includes(part)) {
+                await new Promise(r => setTimeout(r, 120));
+            }
         }
     }
 
@@ -208,7 +240,7 @@ export class AetherBrain {
     // --- STATIC UTILITIES ---
     static async deleteCache() {
         console.log("Deep Cleaning Model Cache...");
-        const dbs = ['nextjs', 'mlc-ai']; // Common WebLLM / IndexedDB targets
+        const dbs = ['nextjs', 'mlc-ai']; 
         for (const dbName of dbs) {
             try {
                 const req = indexedDB.deleteDatabase(dbName);
@@ -217,7 +249,6 @@ export class AetherBrain {
                 console.warn(`Failed to delete DB: ${dbName}`);
             }
         }
-        // Also clear local storage for models specifically
         Object.keys(localStorage).forEach(key => {
             if (key.includes('mlc') || key.includes('web-llm')) {
                 localStorage.removeItem(key);
