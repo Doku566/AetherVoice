@@ -499,6 +499,11 @@ async function sendMessage() {
 
     // Process Response
     const result = await brain.process(processedInput, (token) => {
+        // Clear searching status on first real token
+        if (isProcessing && !fullResponse) {
+            isProcessing = false;
+        }
+        
         fullResponse += token;
         if (!isLiveMode) {
             updateChatUI(textEl, fullResponse);
@@ -506,6 +511,8 @@ async function sendMessage() {
         }
     });
 
+    // Final clean up and save
+    if (isLiveMode) isProcessing = false;
     saveChat('ai', fullResponse);
 
     if (!isLiveMode) {

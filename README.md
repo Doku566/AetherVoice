@@ -1,41 +1,37 @@
-# AetherVoice (WebGPU Experiment)
+# AetherVoice: Una Experiencia de IA con WebGPU
 
-Estuve probando con `WebLLM` para ver si podía correr modelos tipo Llama-3 directo en el navegador sin pagar servidores. 
+¡Hola! Este es mi proyecto para probar `WebLLM`. Quería ver qué tan lejos se puede llegar corriendo modelos de lenguaje potentes (como Llama-3 o Phi-3.5) directamente en el navegador, sin depender de servidores externos. 
 
-La verdad: Se puede, pero pide muchos recursos. Si no tienes GPU dedicada (NVIDIA/AMD), va algo lento porque el navegador no está tan optimizado como una app nativa, pero funciona para experimentar.
-
-Básicamente es un chat local que corre 100% en tu compu, así que es privado.
+El resultado es una IA que vive totalmente en tu computadora. Esto significa que todo lo que hablas es 100% privado, aunque, eso sí, ¡necesitas una buena tarjeta de video (GPU) para que vuele! El navegador todavía tiene sus límites comparado con una aplicación nativa, pero es emocionante ver lo que ya podemos hacer.
 
 ![Interfaz Principal](screenshots/interface.png)
-*Interfaz limpia y moderna.*
+*Diseño limpio con efectos de transparencia y desenfoque (Glassmorphism).*
 
-### Como se ve funcionando
+### ¿Qué funciones he implementado?
 
-Aquí grabé una prueba de cómo está jalando todo en tiempo real:
+Me propuse ir un paso más allá de un simple chat y he logrado integrar varias cosas que me parecen geniales:
 
-![Full Demo Recording](screenshots/demo.webp)
+- **Efecto de Voz en Tiempo Real (FFT)**: He conectado el análisis de audio del navegador con la esfera 3D. Ahora, la "nebulosa" reacciona visualmente al ritmo de tu voz y a las respuestas de la IA. No es solo una animación, es una reacción real al sonido.
+- **Búsqueda Inteligente (RAG-lite)**: Si le preguntas algo sobre noticias o temas actuales, el sistema busca en internet, selecciona la información más importante y se la enseña a la IA. Así evitamos que se invente cosas y ahorramos memoria al mismo tiempo.
+- **Escritura Natural**: He programado un motor que controla el ritmo de escritura. La IA hace pausas en los puntos y acelera en las frases largas, para que la interacción se sienta más humana y menos robótica.
+- **Optimización de Memoria**: He incluido una herramienta para limpiar la memoria caché del modelo. Esto ayuda a que el navegador no se sature después de usarlo mucho tiempo.
 
-### Cosas que ya funcionan:
-- Audio local: Le puedes hablar y te contesta con voz usando el Speech API del navegador.
-- Vision: Si le compartes pantalla, puede ver qué estás haciendo.
-- Esfera 3D: Puse una esfera con Three.js que reacciona cuando la IA piensa o habla. Cambia de colores tipo arcoiris.
-- YouTube: Si le pides un video, lo busca y lo pone ahí mismo en el chat.
-- Búsqueda: Si no sabe algo, usa un script de Python (server.py) para buscar en la red.
+### Algunos retos que estoy resolviendo
 
-### Lo que quiero mejorar (Optimización)
-Una de las cosas que me di cuenta es que la IA es pesadísima para el navegador. Mi idea es buscar alguna manera de optimizar las cargas para que no sea tan pesado y se pueda usar en cualquier compu sin que se trabe. Quizás usando modelos más chicos o cargando por partes.
+Trabajar con IA en el navegador es un desafío constante:
+- **El peso del modelo**: Los archivos de la IA suelen ocupar unos 4GB. La primera vez tarda un poco en descargar, pero luego ya se quedan en tu equipo.
+- **Velocidad de carga**: A veces la IA tarda unos segundos en empezar a responder mientras procesa la búsqueda. He añadido estados de "Sintetizando" y "Generando" para que siempre sepas qué está pasando.
 
-### Retos y problemas
-El frontend está hecho con JS puro, no quise usar React porque no quería líos con el build system. 
+### Cómo probar el proyecto
 
-Me dio problemas la memoria RAM, si recargas mucho la página se llena (Chrome no suelta el modelo rápido). También lo de las búsquedas, Google me bloqueaba si hacía muchas seguidas así que le puse DuckDuckGo como respaldo.
+Para usar la función de búsqueda, necesitas tener Python instalado para ejecutar un pequeño servidor que sirve de puente.
 
-### Como correrlo
-Solo ocupas Python para el proxy de búsqueda.
+1.  **Instala los requisitos**:
+    ```bash
+    pip install -r requirements.txt
+    python server.py
+    ```
+2.  **Abre la aplicación**:
+    Entra en `http://localhost:8097`. Recuerda usar Chrome o Edge (que tengan soporte para WebGPU).
 
-```bash
-pip install -r requirements.txt
-python server.py
-```
-Luego abres localhost:8097.
-(Importante: la primera vez tarda porque descarga como 4GB del modelo).
+¡Sigo trabajando para que el sistema sea cada vez más rápido y consuma menos recursos!
