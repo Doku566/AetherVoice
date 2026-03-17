@@ -211,8 +211,8 @@ function initThreeJS() {
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // AVATAR (OPTIMIZED SPHERE - 48x48)
-    const geometry = new THREE.SphereGeometry(2, 48, 48);
+    // AVATAR (OPTIMIZED SPHERE - 32x32 by default)
+    const geometry = new THREE.SphereGeometry(2, 32, 32);
 
     // Save original positions for morphing reference
     originalPositions = geometry.attributes.position.array.slice();
@@ -234,7 +234,7 @@ function initThreeJS() {
 
     // PARTICLES (Reduced Count)
     const pGeo = new THREE.BufferGeometry();
-    const pCount = 150; // Optimized count
+    const pCount = 75; // Further Optimized
     const pPos = new Float32Array(pCount * 3);
     for (let i = 0; i < pCount * 3; i++) {
         pPos[i] = (Math.random() - 0.5) * 20;
@@ -707,6 +707,30 @@ const newChatBtn = document.getElementById('new-chat-btn');
 
 if (settingsTrigger) settingsTrigger.onclick = () => settingsModal.classList.remove('hidden');
 if (newChatBtn) newChatBtn.onclick = createNewChat;
+
+// --- DEEP OPTIMIZATION UTILS ---
+window.cleanModelCache = async () => {
+    if (confirm("This will delete the 4.7GB local model cache. You will need to re-download it to use the GPU/Neural Engine again. Continue?")) {
+        await AetherBrain.deleteCache();
+        alert("Cache deleted. Reloading...");
+        window.location.reload();
+    }
+};
+
+const perfModeSelect = document.getElementById('perf-mode');
+if (perfModeSelect) {
+    perfModeSelect.onchange = () => {
+        const mode = perfModeSelect.value;
+        if (mode === 'power') {
+            document.getElementById('scene-container').classList.add('hidden');
+            endLiveMode();
+        } else {
+            document.getElementById('scene-container').classList.remove('hidden');
+            if (!renderer) initThreeJS();
+            // In a real app we'd recreate the geometry with mode-specific segments
+        }
+    };
+}
 
 // EXPOSE GLOBALS
 window.toggleMic = toggleMic;

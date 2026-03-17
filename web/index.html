@@ -322,21 +322,39 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-gray-500 uppercase mb-2">Interface Speed</label>
+                    <label class="block text-xs font-medium text-gray-500 uppercase mb-2 text-primary/80 flex justify-between items-center">
+                        Interface Speed
+                        <span class="text-[10px] lowercase normal-case opacity-60">optimized for latency</span>
+                    </label>
                     <div class="flex items-center gap-4">
-                        <input type="range" class="flex-1 accent-primary" min="1" max="50" value="20">
-                        <span class="text-xs text-gray-400">Stable</span>
+                        <input type="range" class="flex-1 accent-primary" min="1" max="50" value="10">
+                        <span class="text-xs text-gray-400">Turbo</span>
                     </div>
                 </div>
 
-                <div class="pt-4 flex justify-end gap-3">
-                     <button onclick="localStorage.removeItem('AETHERVOICE_HISTORY'); window.location.reload()" 
-                             class="px-4 py-2 text-xs font-medium text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
-                        Clear History
-                     </button>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 uppercase mb-2">Performance Mode</label>
+                    <select id="perf-mode" class="w-full bg-surface border border-white/10 rounded-lg p-2 text-sm text-gray-200 outline-none focus:border-primary/50">
+                        <option value="high">High Performance (48x48 Vertices)</option>
+                        <option value="balanced" selected>Balanced (32x32 Vertices)</option>
+                        <option value="power">Power Saver (Static Background)</option>
+                    </select>
+                </div>
+
+                <div class="pt-4 flex flex-col gap-3">
+                     <div class="flex gap-3">
+                        <button onclick="localStorage.removeItem('AETHERVOICE_SESSIONS'); window.location.reload()" 
+                                class="flex-1 px-4 py-3 text-xs font-medium text-gray-400 hover:text-white border border-white/5 hover:bg-white/5 rounded-xl transition-all">
+                           Clear Chat History
+                        </button>
+                        <button onclick="window.cleanModelCache()" 
+                                class="flex-1 px-4 py-3 text-xs font-medium text-red-400/80 hover:text-red-400 border border-red-400/10 hover:bg-red-400/10 rounded-xl transition-all">
+                           Deep Clean Cache (4.7GB)
+                        </button>
+                     </div>
                      <button onclick="document.getElementById('settings-modal').classList.add('hidden')" 
-                             class="px-4 py-2 bg-primary text-bg font-medium rounded-lg text-xs hover:opacity-90 transition-opacity">
-                        Save Changes
+                             class="w-full py-4 bg-primary text-bg font-bold rounded-xl text-xs hover:opacity-90 transition-all shadow-lg">
+                        Apply & Save Changes
                     </button>
                 </div>
             </div>

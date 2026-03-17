@@ -27,7 +27,7 @@ class OfflineSystem {
 
                 // Stream response
                 for (const char of response) {
-                    await new Promise(r => setTimeout(r, 2)); // Faster streaming
+                    await new Promise(r => setTimeout(r, 1)); // Near-instant
                     if (onToken) onToken(char);
                 }
                 return response;
@@ -42,7 +42,7 @@ class OfflineSystem {
 
         const chars = text.split('');
         for (let i = 0; i < chars.length; i++) {
-            await new Promise(r => setTimeout(r, 5 + Math.random() * 5)); // Faster typing
+            await new Promise(r => setTimeout(r, 2 + Math.random() * 3)); // Fastest typing
             if (onToken) onToken(chars[i]);
         }
         return text;
@@ -145,8 +145,10 @@ export class AetherBrain {
         try {
             const chunks = await this.engine.chat.completions.create({
                 messages: newMessages,
-                temperature: 0.6,
-                top_p: 0.9,
+                temperature: 0.5, // Slightly more deterministic for speed
+                top_p: 0.8,
+                max_gen_len: 384, // Limit generation length for faster turn-around
+                repetition_penalty: 1.1,
                 stream: true,
             });
 
@@ -182,5 +184,26 @@ export class AetherBrain {
         } catch (e) {
             return [];
         }
+    }
+
+    // --- STATIC UTILITIES ---
+    static async deleteCache() {
+        console.log("Deep Cleaning Model Cache...");
+        const dbs = ['nextjs', 'mlc-ai']; // Common WebLLM / IndexedDB targets
+        for (const dbName of dbs) {
+            try {
+                const req = indexedDB.deleteDatabase(dbName);
+                req.onsuccess = () => console.log(`Deleted DB: ${dbName}`);
+            } catch (e) {
+                console.warn(`Failed to delete DB: ${dbName}`);
+            }
+        }
+        // Also clear local storage for models specifically
+        Object.keys(localStorage).forEach(key => {
+            if (key.includes('mlc') || key.includes('web-llm')) {
+                localStorage.removeItem(key);
+            }
+        });
+        return true;
     }
 }
