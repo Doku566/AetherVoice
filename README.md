@@ -9,15 +9,22 @@ Básicamente es un chat local que corre 100% en tu compu, así que es privado.
 ![Interfaz Principal](screenshots/interface.png)
 *Interfaz limpia y moderna.*
 
-### Lo que funciona hasta ahora:
-- **Audio**: Puedes hablarle y te responde con voz.
-- **Vision**: Si compartes pantalla, "ve" lo que haces (útil para debugging).
-- **Nebulosa Arcoiris 🌈**: Un visualizador 3D que reacciona a tu voz y cambia de colores.
+### Demostración de Funciones 🚀
 
-![Modo Live](screenshots/live_mode.png)
-*Modo "Live" con la esfera reactiva.*
-- **Videos**: Si pides un tutorial (tipo "cómo cocinar"), busca en YouTube y te pega el video ahí mismo en el chat.
-- **Búsqueda**: Si no sabe algo, usa un script de Python (`server.py`) para buscar en Google.
+Aquí puedes ver cómo funciona todo en tiempo real:
+
+![Full Demo Recording](screenshots/demo.webp)
+
+### Lo que funciona hasta ahora:
+- **Audio local**: Puedes hablarle y te responde con voz usando el `Speech API` del navegador.
+- **Vision**: Si compartes pantalla, "ve" lo que haces.
+- **Nebulosa Arcoiris 🌈**: Un visualizador 3D hecho con Three.js que reacciona a los estados de la IA (pensando, hablando, escuchando).
+- **YouTube Player**: Si pides un video, lo busca y lo embebe directamente.
+- **Búsqueda Web**: Usa un proxy de Python para sacar info actualizada de la red.
+
+![Interfaz Principal](screenshots/interface.png)
+*Nueva interfaz inspirada en Gemini V2.*
+
 
 ### Cosas técnicas / Problemas
 El frontend es JS puro (vanilla), nada de React porque me daba pereza configurar el build system y quería mantenerlo simple.
