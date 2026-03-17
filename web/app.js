@@ -25,6 +25,16 @@ let firstMessage = true;
 let currentAttachment = null;
 const brain = new AetherBrain();
 
+// --- SESSION MANAGEMENT ---
+let currentSessionId = Date.now().toString();
+const STORAGE_KEY = 'AETHERVOICE_SESSIONS';
+let sessions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+// Ensure current session exists
+if (!sessions[currentSessionId]) {
+    sessions[currentSessionId] = { messages: [], title: 'New Chat', timestamp: Date.now() };
+}
+
 // MDL Loader UI
 const modelLoader = document.getElementById('model-loader');
 const loadBar = document.getElementById('load-bar');
@@ -32,31 +42,82 @@ const loadPercent = document.getElementById('load-percent');
 const loadStatus = document.getElementById('load-status');
 
 // --- PERSISTENCE LOGIC ---
-const STORAGE_KEY = 'AETHERVOICE_HISTORY';
-let chatHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
 function saveChat(role, text) {
     if (!text) return;
-    chatHistory.push({ role, text, timestamp: Date.now() });
-    if (chatHistory.length > 50) chatHistory = chatHistory.slice(-50);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
+    const session = sessions[currentSessionId];
+    session.messages.push({ role, text, timestamp: Date.now() });
+    
+    // Update title if it's the first user message
+    if (role === 'user' && session.title === 'New Chat') {
+        session.title = text.substring(0, 30);
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    updateSidebarHistory();
+}
+
+function loadSession(id) {
+    if (!sessions[id]) return;
+    currentSessionId = id;
+    
+    // Clear UI
+    chatContainer.innerHTML = '';
+    welcomeMsg.style.display = 'none';
+    firstMessage = false;
+
+    // Render messages
+    sessions[id].messages.forEach(msg => {
+        if (msg.role === 'user') {
+            appendUserBubble(msg.text);
+        } else {
+            const contentId = 'ai-text-' + Date.now() + Math.random();
+            const div = document.createElement('div');
+            div.className = "flex gap-4 mb-6";
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-transparent border border-white/10 flex items-center justify-center shrink-0">
+                     <i class="fa-solid fa-bolt text-xs text-blue-400 opacity-80"></i>
+                </div>
+                <div class="text-gray-100 leading-relaxed pt-1 w-full relative group">
+                    <div id="${contentId}" class="markdown-body min-h-[20px]"></div> 
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            updateChatUI(document.getElementById(contentId), msg.text);
+        }
+    });
+    scrollToBottom();
+}
+
+function createNewChat() {
+    currentSessionId = Date.now().toString();
+    sessions[currentSessionId] = { messages: [], title: 'New Chat', timestamp: Date.now() };
+    chatContainer.innerHTML = '';
+    welcomeMsg.style.display = 'block';
+    firstMessage = true;
     updateSidebarHistory();
 }
 
 function updateSidebarHistory() {
     const container = document.getElementById('recent-chats');
     if (!container) return;
-    const userPrompts = chatHistory.filter(m => m.role === 'user').reverse().slice(0, 5);
-    container.innerHTML = `<h3 class="text-xs font-medium text-gray-500 mb-2 px-2">Recent Interactions</h3>`;
-    if (userPrompts.length === 0) {
+    const sessionList = Object.entries(sessions)
+        .sort((a, b) => b[1].timestamp - a[1].timestamp)
+        .slice(0, 10);
+
+    container.innerHTML = `<h3 class="text-xs font-medium text-gray-500 mb-2 px-2 uppercase tracking-wider">Recent Chats</h3>`;
+    
+    if (sessionList.length === 0) {
         container.innerHTML += `<div class="px-2 text-xs text-gray-600">No history yet</div>`;
         return;
     }
-    userPrompts.forEach(msg => {
+
+    sessionList.forEach(([id, session]) => {
+        if (session.messages.length === 0 && id !== currentSessionId) return;
         const item = document.createElement('div');
-        item.className = "p-2 hover:bg-white/5 rounded-full text-sm text-gray-300 truncate cursor-pointer flex gap-2 items-center transition-colors";
-        item.innerHTML = `<i class="fa-regular fa-message text-xs"></i> <span>${msg.text.substring(0, 20)}...</span>`;
-        item.onclick = () => { promptInput.value = msg.text; };
+        const isActive = id === currentSessionId;
+        item.className = `p-2 rounded-xl text-sm truncate cursor-pointer flex gap-3 items-center transition-all ${isActive ? 'bg-white/10 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`;
+        item.innerHTML = `<i class="fa-regular fa-message text-xs"></i> <span>${session.title}</span>`;
+        item.onclick = () => loadSession(id);
         container.appendChild(item);
     });
 }
@@ -98,10 +159,10 @@ function removeLoadingBubble(id) {
 }
 
 async function simulateReasoningSteps(elementId) {
-    const steps = ["Analyzing intent...", "Retrieving RAG context...", "Synthesizing response..."];
+    const steps = ["Analyzing intent...", "Retrieving context...", "Generating..."];
     const label = document.querySelector(`#${elementId} .loading-text`);
     if (!label) return;
-    const delay = isLiveMode ? 100 : 400;
+    const delay = isLiveMode ? 50 : 200; // Optimized delays
     for (const step of steps) {
         label.textContent = step;
         await new Promise(r => setTimeout(r, delay));
@@ -266,9 +327,14 @@ async function initAudioVisualizer() {
 }
 
 let time = 0;
-function drawVisualizer() {
-    if (!isLiveMode || !renderer || !sphere) return;
+let lastFrameTime = 0;
+function drawVisualizer(now) {
+    if (!isLiveMode || !renderer || !sphere || document.visibilityState === 'hidden') return;
     requestAnimationFrame(drawVisualizer);
+
+    // Throttle to ~60fps if needed, or skip if tab inactive
+    if (now - lastFrameTime < 16) return;
+    lastFrameTime = now;
 
     analyser.getByteFrequencyData(dataArray);
     time += 0.01;
@@ -633,6 +699,14 @@ promptInput.addEventListener('input', () => {
 promptInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
+
+// Sidebar & Modals
+const settingsModal = document.getElementById('settings-modal');
+const settingsTrigger = document.getElementById('settings-trigger');
+const newChatBtn = document.getElementById('new-chat-btn');
+
+if (settingsTrigger) settingsTrigger.onclick = () => settingsModal.classList.remove('hidden');
+if (newChatBtn) newChatBtn.onclick = createNewChat;
 
 // EXPOSE GLOBALS
 window.toggleMic = toggleMic;

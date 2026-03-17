@@ -78,11 +78,21 @@
         .logo-gradient {
             background: linear-gradient(90deg, #4285F4, #9B72CB, #D96570);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .tool-icon {
-            @apply p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer text-gray-400;
+            padding: 0.5rem;
+            border-radius: 9999px;
+            transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+            cursor: pointer;
+            color: #9CA3AF;
+        }
+        .tool-icon:hover {
+            background-color: rgba(255, 255, 255, 0.1);
         }
     </style>
 </head>
@@ -99,7 +109,7 @@
         <div class="mx-4 mt-4 flex gap-2">
             <button
                 class="flex items-center gap-2 bg-surface px-4 py-3 rounded-full text-sm font-medium hover:bg-white/5 transition-all text-gray-200"
-                onclick="window.location.reload()">
+                id="new-chat-btn">
                 <i class="fa-solid fa-plus"></i> New chat
             </button>
             <button onclick="startLiveMode()"
@@ -120,7 +130,7 @@
                 class="flex items-center gap-2 text-sm text-yellow-400 hover:text-yellow-300 cursor-pointer transition-colors mb-4">
                 <i class="fa-solid fa-coins"></i> Pricing & API
             </a>
-            <div
+            <div id="settings-trigger"
                 class="flex items-center gap-2 text-sm text-gray-400 hover:text-white cursor-pointer transition-colors">
                 <i class="fa-solid fa-gear"></i> Settings
             </div>
@@ -289,6 +299,47 @@
                 class="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md flex items-center justify-center transition-all border border-white/5 group">
                 <i class="fa-solid fa-microphone text-xl group-hover:scale-110 transition-transform"></i>
             </button>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-sidebar border border-white/10 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-medium">Settings</h3>
+                <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 uppercase mb-2">Model Configuration</label>
+                    <div class="p-3 bg-surface rounded-lg border border-white/5 flex items-center justify-between text-sm">
+                        <span>Llama 3 (WebGPU)</span>
+                        <span class="text-xs text-green-400 font-mono">Quantum-v2 Active</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 uppercase mb-2">Interface Speed</label>
+                    <div class="flex items-center gap-4">
+                        <input type="range" class="flex-1 accent-primary" min="1" max="50" value="20">
+                        <span class="text-xs text-gray-400">Stable</span>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end gap-3">
+                     <button onclick="localStorage.removeItem('AETHERVOICE_HISTORY'); window.location.reload()" 
+                             class="px-4 py-2 text-xs font-medium text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
+                        Clear History
+                     </button>
+                     <button onclick="document.getElementById('settings-modal').classList.add('hidden')" 
+                             class="px-4 py-2 bg-primary text-bg font-medium rounded-lg text-xs hover:opacity-90 transition-opacity">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

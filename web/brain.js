@@ -27,7 +27,7 @@ class OfflineSystem {
 
                 // Stream response
                 for (const char of response) {
-                    await new Promise(r => setTimeout(r, 5));
+                    await new Promise(r => setTimeout(r, 2)); // Faster streaming
                     if (onToken) onToken(char);
                 }
                 return response;
@@ -42,7 +42,7 @@ class OfflineSystem {
 
         const chars = text.split('');
         for (let i = 0; i < chars.length; i++) {
-            await new Promise(r => setTimeout(r, 10 + Math.random() * 20));
+            await new Promise(r => setTimeout(r, 5 + Math.random() * 5)); // Faster typing
             if (onToken) onToken(chars[i]);
         }
         return text;
